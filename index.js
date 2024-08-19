@@ -4,6 +4,7 @@ import fs  from "fs";
 import dotenv from 'dotenv';
 import multicallAbi from './abi.json' assert { type: "json" }
 
+
 dotenv.config()
 const endpoints = [
     `wss://base-rpc.publicnode.com`,
@@ -56,7 +57,12 @@ const swapDetails = [
   {
         tokenAddress: "0x5A8F95B20F986E31Dda904bc2059b21D5Ad8A66c",
         router: "0x6bded42c6da8fbf0d2ba55b2fa120c5e0c8d7891"
-  }
+  },
+  {
+        tokenAddress: "0x532f27101965dd16442E59d40670FaF5eBB142E4",
+        router: "0x6bded42c6da8fbf0d2ba55b2fa120c5e0c8d7891"
+  },
+  
   // ADD MORE TOKENS IF YOU LIKE
 ];
 
@@ -86,7 +92,7 @@ async function prepareMultiSwap() {
     
     var tx = {
             to: address,
-            value: utils.parseUnits("0.000005", 18)
+            value: utils.parseUnits("0.000006", 18)
     };
     var { gasLimit, gasPrice } = await getGasEstimates(tx);
     var sendETH = await fundingWallet.sendTransaction({
@@ -112,7 +118,7 @@ async function prepareMultiSwap() {
         data: multicallContract.interface.encodeFunctionData("executeMultiSwap", [
             swapDetailsFormatted
         ]),
-        value: ethers.utils.parseUnits("0.0000005", 18),
+        value: ethers.utils.parseUnits("0.0000002", 18),
         nonce: nonce
       };
   
@@ -201,4 +207,4 @@ writeInitialContent((err) => {
 
 setInterval(() => {
     prepareMultiSwap();
-}, 5000)
+}, 4000)
