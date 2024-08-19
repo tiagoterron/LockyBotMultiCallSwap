@@ -3,84 +3,36 @@ import { ethers, utils }  from "ethers";
 import fs  from "fs";
 import dotenv from 'dotenv';
 import multicallAbi from './abi.json' assert { type: "json" }
-
-
+import { getProvider, provider, router, getNonce, getGasEstimates, CreateNewWallet, SaveFile } from "./lib.js";
 dotenv.config()
-const endpoints = [
-    `wss://base-rpc.publicnode.com`,
-    `wss://base-mainnet.g.alchemy.com/v2/${process.env.apikey_1}`,
-    `wss://base-rpc.publicnode.com`,
-    `wss://base-mainnet.g.alchemy.com/v2/${process.env.apikey_2}`,
-    `wss://base-rpc.publicnode.com`,
-    `wss://base-mainnet.g.alchemy.com/v2/${process.env.apikey_3}`,
-    `wss://base-rpc.publicnode.com`,
-    `wss://base-mainnet.g.alchemy.com/v2/${process.env.apikey_4}`,
-    `wss://base-rpc.publicnode.com`,
-    `wss://base-mainnet.g.alchemy.com/v2/${process.env.apikey_5}`,
-    `wss://base-rpc.publicnode.com`,
-    `wss://base-mainnet.g.alchemy.com/v2/${process.env.apikey_6}`,
-    `wss://base-rpc.publicnode.com`,
-    `wss://base-mainnet.g.alchemy.com/v2/${process.env.apikey_7}`,
-
-];
-
-let currentIndex = 0;
-
-export const getProvider = () => {
-    try {
-        // Get the current endpoint and increment the index
-        const endpoint = endpoints[currentIndex];
-        currentIndex = (currentIndex + 1) % endpoints.length; // Cycle through the endpoints
-
-        // Create and return the provider
-        return new ethers.providers.WebSocketProvider(endpoint);
-    } catch (err) {
-        console.error("Error creating WebSocketProvider:", err);
-        throw err; // Optionally rethrow or handle the error as needed
-    }
-};
-
-const provider = getProvider();
 
 
-const multicallAddress = "0xB07Ff023E3432A1f9E80aD84c4451C805e8D336c";  // Uniswap Router Address
+const multicallAddress = "0xB07Ff023E3432A1f9E80aD84c4451C805e8D336c";
 
 const swapDetails = [
     {
         tokenAddress: "0xd429a52a56c712aB8ba11EaCd8Bf178E7c3b4D80",
-        router: "0x4752ba5dbc23f44d87826276bf6fd6b1c372ad24"
+        router: router.uniswap
     },
     {
         tokenAddress: "0x8a9430e92153c026092544444cBb38077e6688D1",
-        router: "0x6bded42c6da8fbf0d2ba55b2fa120c5e0c8d7891"
+        router: router.sushiswap
   },
   {
         tokenAddress: "0x5A8F95B20F986E31Dda904bc2059b21D5Ad8A66c",
-        router: "0x6bded42c6da8fbf0d2ba55b2fa120c5e0c8d7891"
+        router: router.sushiswap
   },
   {
         tokenAddress: "0x532f27101965dd16442E59d40670FaF5eBB142E4",
-        router: "0x6bded42c6da8fbf0d2ba55b2fa120c5e0c8d7891"
+        router: router.uniswap
   },
   
   // ADD MORE TOKENS IF YOU LIKE
 ];
 
-async function CreateNewWallet(){
-    let randomWallet = ethers.Wallet.createRandom();
-    const wallet = new ethers.Wallet(randomWallet?.privateKey, provider);
-    return { signer: wallet, address: randomWallet?.address, privateKey: randomWallet?.privateKey }
-}
 
-async function getGasEstimates(tx) {
-    const gasLimit = await provider.estimateGas(tx);
-    const gasPrice = await provider.getGasPrice();
-    return { gasLimit: gasLimit.mul(2), gasPrice: gasPrice.mul(2) };
-}
 
-async function getNonce(wallet) {
-    return await wallet.getTransactionCount("pending");
-  }
+
 
 async function prepareMultiSwap() {
     try{
@@ -168,43 +120,9 @@ if (amountToSend.gt(0)) {
 
 }
 
-const SaveFile = (privateKey) => {
-const initialContent = '';
-const fileName = 'privatekeys.txt';
-
-function writeInitialContent(callback) {
-    fs.readFile(fileName, 'utf8', (err, data) => {
-        if (err && err.code === 'ENOENT') {
-            fs.writeFile(fileName, initialContent, callback);
-        } else if (err) {
-            console.error('Error reading the file', err);
-            return;
-        } else {
-            fs.writeFile(fileName, data + '\n' + initialContent, callback);
-        }
-    });
-}
-
-function appendPrivateKey() {
-    fs.appendFile(fileName, `\n${privateKey}`, (err) => {
-        if (err) {
-            console.error('Error appending private key', err);
-            return;
-        }
-        console.log('Private key has been appended successfully.');
-    });
-}
-
-writeInitialContent((err) => {
-    if (err) {
-        console.error('Error writing initial content', err);
-        return;
-    }
-    console.log('Initial content written to file.');
-    appendPrivateKey();
-});
-}
 
 setInterval(() => {
+
     prepareMultiSwap();
-}, 4000)
+
+}, 10000)
