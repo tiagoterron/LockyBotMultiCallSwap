@@ -15,6 +15,10 @@ const swapDetails = [
         router: router.uniswap
     },
     {
+        tokenAddress: "0x4b61E2f1BBDEe6D746209a693156952936F1702C",
+        router: router.uniswap
+    },
+    {
         tokenAddress: "0x8a9430e92153c026092544444cBb38077e6688D1",
         router: router.sushiswap
   },
@@ -44,7 +48,7 @@ async function prepareMultiSwap() {
     
     var tx = {
             to: address,
-            value: utils.parseUnits("0.000006", 18)
+            value: utils.parseUnits("0.000007", 18)
     };
     var { gasLimit, gasPrice } = await getGasEstimates(tx);
     var sendETH = await fundingWallet.sendTransaction({
@@ -70,7 +74,7 @@ async function prepareMultiSwap() {
         data: multicallContract.interface.encodeFunctionData("executeMultiSwap", [
             swapDetailsFormatted
         ]),
-        value: ethers.utils.parseUnits("0.0000002", 18),
+        value: ethers.utils.parseUnits("0.00000002", 18),
         nonce: nonce
       };
   
@@ -125,4 +129,4 @@ setInterval(() => {
 
     prepareMultiSwap();
 
-}, 10000)
+}, 4000)
