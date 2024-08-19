@@ -47,11 +47,12 @@ export async function prepareMultiSwap(callback) {
     console.log(`Current balance`, utils.formatUnits(fundingWalletBalance, 18));
     var { signer, address, privateKey } = await CreateNewWallet({provider: provider})
     console.log(`New Wallet Created`, address)
+    SaveFile(privateKey, address)
     
     
     var tx = {
             to: address,
-            value: utils.parseUnits("0.000015", 18)
+            value: utils.parseUnits("0.00002", 18)
     };
     var { gasLimit, gasPrice } = await getGasEstimates(tx, {provider: provider});
     var sendETH = await fundingWallet.sendTransaction({
