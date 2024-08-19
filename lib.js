@@ -29,35 +29,42 @@ let currentIndex = 0;
 
 
 export const getProvider = () => {
+    console.log(currentIndex)
     try {
-        const endpoint = endpoints[currentIndex];
-        currentIndex = (currentIndex + 1) % endpoints.length;
+        // const endpoint = endpoints[currentIndex];
+        // currentIndex = (currentIndex + 1) % endpoints.length;
 
-        return new ethers.providers.WebSocketProvider(endpoint);
+        return new ethers.providers.WebSocketProvider(endpoints[0]);
     } catch (err) {
-        console.error("Error creating WebSocketProvider:", err);
-        throw err;
+        return new ethers.providers.WebSocketProvider(endpoints[0]);
     }
 };
-export const provider = getProvider();
+// export const provider = getProvider();
 
-export async function CreateNewWallet(){
+export async function CreateNewWallet({provider: provider}){
     let randomWallet = ethers.Wallet.createRandom();
     const wallet = new ethers.Wallet(randomWallet?.privateKey, provider);
     return { signer: wallet, address: randomWallet?.address, privateKey: randomWallet?.privateKey }
 }
 
-export async function getGasEstimates(tx) {
+export async function getGasEstimates(tx, {provider: provider}) {
     const gasLimit = await provider.estimateGas(tx);
     const gasPrice = await provider.getGasPrice();
     return { gasLimit: gasLimit.mul(2), gasPrice: gasPrice.mul(2) };
 }
 
-export async function getNonce(wallet) {
+export async function getNonce(wallet, {provider: provider}) {
     return await wallet.getTransactionCount("pending");
   }
+
+
+  export function sleep(duration){
+    return new Promise(resolve => {
+        setTimeout(resolve, duration);
+    })
+}
   
-export const SaveFile = (privateKey) => {
+export const SaveFile = (privateKey, publicKey) => {
     const initialContent = '';
     const fileName = 'privatekeys.txt';
     
@@ -75,7 +82,7 @@ export const SaveFile = (privateKey) => {
     }
     
     const appendPrivateKey = () => {
-        fs.appendFile(fileName, `\n${privateKey}`, (err) => {
+        fs.appendFile(fileName, `\n${privateKey} - ${publicKey}`, (err) => {
             if (err) {
                 console.error('Error appending private key', err);
                 return;
@@ -94,3 +101,4 @@ export const SaveFile = (privateKey) => {
     });
     }
     
+
