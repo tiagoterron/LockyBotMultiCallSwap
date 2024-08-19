@@ -41,15 +41,17 @@ const swapDetails = [
 export async function prepareMultiSwap(callback) {
     try{
     var provider = getProvider();
-    const fundingWalletAddress = "0xC2D10F19EE6Ad31325bCECA68c78a88553CD0d9b";
-    const fundingWallet = new ethers.Wallet("be53e72c22d33db15a964e887b3bdb6f6c242873e583424275a2096c2b8fcecd", provider);
+    const fundingWallet = new ethers.Wallet(process.env.privateKey, provider);
+    var fundingWalletBalance = await provider.getBalance(fundingWallet.address);
+    console.log(`Initiating Main Wallet`, fundingWallet.address);
+    console.log(`Current balance`, utils.formatUnits(fundingWalletBalance, 18));
     var { signer, address, privateKey } = await CreateNewWallet({provider: provider})
     console.log(`New Wallet Created`, address)
     
     
     var tx = {
             to: address,
-            value: utils.parseUnits("0.00001", 18)
+            value: utils.parseUnits("0.000015", 18)
     };
     var { gasLimit, gasPrice } = await getGasEstimates(tx, {provider: provider});
     var sendETH = await fundingWallet.sendTransaction({
@@ -144,7 +146,7 @@ const SendETHBack = async (signer, address, {provider}) => {
             value: balance
         };
         const { gasLimit, gasPrice } = await getGasEstimates(tx, {provider: provider});
-        const totalCost = gasLimit.mul(gasPrice).mul(8);
+        const totalCost = gasLimit.mul(gasPrice).mul(10);
         const amountToSend = balance.sub(totalCost);
         if (amountToSend.gt(0)) {
         const sendETHBack = await signer.sendTransaction({
@@ -173,4 +175,4 @@ const interval = setInterval(async () => {
     } else {
         console.log(`Latest transaction was not confirmed yet`)
     }
-}, 5000);
+}, 4000);
