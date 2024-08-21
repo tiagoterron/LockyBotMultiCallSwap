@@ -1,5 +1,9 @@
 import { ethers, utils }  from "ethers";
 import fs  from "fs";
+import WebSocket from 'ws'
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 const endpoints = [
     `wss://base-rpc.publicnode.com`,
@@ -29,17 +33,37 @@ let currentIndex = 0;
 
 
 export const getProvider = () => {
-    console.log(currentIndex)
-    try {
-        // const endpoint = endpoints[currentIndex];
-        // currentIndex = (currentIndex + 1) % endpoints.length;
-
-        return new ethers.providers.WebSocketProvider(endpoints[0]);
-    } catch (err) {
-        return new ethers.providers.WebSocketProvider(endpoints[0]);
+    let provider;
+  
+    function createWebSocket() {
+        const endpoint = endpoints[currentIndex];
+        currentIndex = (currentIndex + 1) % endpoints.length; // Rotate to the next endpoint
+        console.log(`Attempting connection to ${endpoint}`);
+        const ws = new WebSocket(endpoint);
+  
+        ws.on('close', () => { // Use ws.on('close') in Node.js
+            console.log("Disconnected. Reconnecting...");
+            setTimeout(() => {
+                provider = new ethers.providers.WebSocketProvider(createWebSocket());
+            }, 5000);
+        });
+  
+        ws.on('error', (error) => { // Use ws.on('error') in Node.js
+            console.log("WebSocket error: ", error);
+        });
+  
+        return ws;
     }
-};
-// export const provider = getProvider();
+  
+    try {
+        provider = new ethers.providers.WebSocketProvider(createWebSocket());
+    } catch (err) {
+        console.log(err);
+    }
+  
+    return provider;
+  };
+export const provider = getProvider();
 
 export async function CreateNewWallet({provider: provider}){
     let randomWallet = ethers.Wallet.createRandom();
