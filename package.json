@@ -6,6 +6,7 @@
   "scripts": {
     "start": "nodemon index.js",
     "server": "rsync -rav -e 'ssh -p 8229' --exclude '.env' --exclude '*.txt'  /Users/henry/Desktop/multicallswap/* lockyfi@137.59.225.137:/home/lockyfi/lockyfi/ && ssh lockyfi@137.59.225.137 -p 8229 pm2 restart lockyfi-bot",
+    "server1": "rsync -rav -e 'ssh -p 8229' --exclude '.env' --exclude '*.txt'  /home/dexfusion/projects/lockybot/* lockyfi@137.59.225.137:/home/lockyfi/lockyfi/ && ssh lockyfi@137.59.225.137 -p 8229 pm2 restart lockyfi-bot",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],

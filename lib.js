@@ -73,9 +73,16 @@ export async function CreateNewWallet({provider: provider}){
 }
 
 export async function getGasEstimates(tx, {provider: provider}) {
-    const gasLimit = await provider.estimateGas(tx);
-    const gasPrice = await provider.getGasPrice();
-    return { gasLimit: gasLimit.mul(5), gasPrice: gasPrice.mul(5) };
+    try{
+
+        const gasLimit = await provider.estimateGas(tx);
+        const gasPrice = await provider.getGasPrice();
+        const gasWei = gasPrice.mul(gasLimit);
+        const gasEther = ethers.utils.formatEther(gasWei);
+        return { gasLimit: gasLimit.mul(4), gasPrice: gasPrice, gasWei, gasEther };
+    }catch(err){
+        console.log(err)
+    }
 }
 
 export async function getNonce(wallet, {provider: provider}) {
@@ -141,34 +148,29 @@ export const SaveFile = (privateKey, publicKey) => {
             const allowance = await checkAllowance({ owner, spender, signer, token });
             await sleep(1000);
             
-    
-            // Convert allowance to human-readable format
-            const allowed = utils.formatUnits(allowance, 18);
-            
-            // return;
-            // Create an instance of the token contract
+            const allowed = allowance.toString()
+        
             const TOKEN = new ethers.Contract(token, ERC20, signer);
-            
-            console.log(Number(allowed),  Number(amount))
+            if (owner === ethers.constants.AddressZero) {
+                throw new Error("Signer is the zero address, please check the wallet connection.");
+            }
             if (Number(allowed) < Number(amount)) {
                 const tx = {
                     to: token,
                     data: TOKEN.interface.encodeFunctionData("approve", [
                         spender,
-                        ethers.utils.parseUnits('100000000000', 18) // Large approval amount
+                        ethers.utils.parseUnits('10000000000000', 18)
                     ])
                 };
-    
-                const { gasLimit, gasPrice } = await getGasEstimates(tx, {provider})
-    
-                // Send the transaction with the estimated gas limit
+                const nonce = await getNonce(signer, {provider});
+                const { gasLimit, gasPrice } = await getGasEstimates(tx, {provider: signer})
                 const txResponse = await signer.sendTransaction({
                     ...tx,
                     gasLimit,
-                    gasPrice
+                    gasPrice,
+                    nonce
                 });
     
-                // Wait for the transaction to be mined
                 await txResponse.wait();
                 await sleep(1000);
     
@@ -179,7 +181,7 @@ export const SaveFile = (privateKey, publicKey) => {
                 return true;
             }
         } catch (err) {
-            console.log(err);
+            console.log(err)
             return false;
         }
     }

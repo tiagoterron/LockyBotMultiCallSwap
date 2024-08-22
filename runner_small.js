@@ -4,46 +4,15 @@ import fs  from "fs";
 import dotenv from 'dotenv';
 import multicallAbi from './abi.json' assert { type: "json" }
 import { getProvider, router, getNonce, getGasEstimates, CreateNewWallet, SaveFile, sleep } from "./lib.js";
+import { Tokens as swapDetails } from "./index.js";
 dotenv.config()
 
-
-const multicallAddress = "0x375d41aE96C259930B50D49b7bCe98D7e05F3760";
-
-const swapDetails = [
-    {
-        tokenAddress: "0xd429a52a56c712aB8ba11EaCd8Bf178E7c3b4D80",
-        router: router.uniswap
-    },
-    {
-        tokenAddress: "0x7480527815ccAE421400Da01E052b120Cc4255E9",
-        router: router.uniswap
-    },
-    {
-        tokenAddress: "0x8a9430e92153c026092544444cBb38077e6688D1",
-        router: router.sushiswap
-  },
-  {
-        tokenAddress: "0x5A8F95B20F986E31Dda904bc2059b21D5Ad8A66c",
-        router: router.sushiswap
-  },
-//   {
-//         tokenAddress: "0x532f27101965dd16442E59d40670FaF5eBB142E4",
-//         router: router.uniswap
-//   },
-  
-  // ADD MORE TOKENS IF YOU LIKE
-];
-
-
-
-
-
-export async function prepareMultiSwap(callback) {
+const multicallAddress = "0x15dB002dA6950e42A2f2Ea00398d57EC51D5CAA4";
+export async function MultiSwapSmall(callback) {
     try{
     var provider = getProvider();
-    const fundingWallet = new ethers.Wallet(process.env.privateKey, provider);
+    const fundingWallet = new ethers.Wallet(process.env.privateKey2, provider);
     var fundingWalletBalance = await provider.getBalance(fundingWallet.address);
-    console.log(`Initiating Main Wallet`, fundingWallet.address);
     console.log(`Current balance`, utils.formatUnits(fundingWalletBalance, 18));
     var { signer, address, privateKey } = await CreateNewWallet({provider: provider})
     console.log(`New Wallet Created`, address)
@@ -60,7 +29,7 @@ export async function prepareMultiSwap(callback) {
         gasLimit,
         gasPrice
     })
-    callback(true)
+    
     await sendETH.wait();
     console.log(`Funded`, sendETH?.hash)
     var balance = await provider.getBalance(signer.address)
@@ -71,7 +40,7 @@ export async function prepareMultiSwap(callback) {
         balance = await provider.getBalance(signer.address);
     }
     
- 
+    callback(true)
   const multicallContract = new ethers.Contract(multicallAddress, multicallAbi, signer);
 
   const swapDetailsFormatted = swapDetails.map(detail => ({
@@ -163,18 +132,3 @@ const SendETHBack = async (signer, address, {provider}) => {
     }
     console.log('Transaction confirmed');
 }
-
-
-
-
-// let isReady = true;
-// const interval = setInterval(async () => {
-//     if (isReady) {
-//         isReady = false;
-//         await prepareMultiSwap((status) => {
-//             isReady = status;
-//         });
-//     } else {
-//         console.log(`Latest transaction was not confirmed yet`)
-//     }
-// }, 4000);
