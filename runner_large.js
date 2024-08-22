@@ -54,7 +54,7 @@ if (approvalResults.every(res => res === true)) {
         nonce: nonce
       };
     var { gasLimit, gasPrice, gasWei, gasEther } = await getGasEstimates(tx, {provider: provider});
-    if(gasEther > 0.000005) throw Error(`Network is too busy`)
+    if(gasEther > 0.000004) throw Error(`Network is too busy`)
 
     const txResponse = await signer.sendTransaction({
       ...tx,

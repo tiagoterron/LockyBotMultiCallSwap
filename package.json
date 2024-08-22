@@ -5,8 +5,8 @@
   "type": "module",
   "scripts": {
     "start": "nodemon index.js",
-    "server": "rsync -rav -e 'ssh -p 8229' --exclude '.env' --exclude '*.txt'  /Users/henry/Desktop/multicallswap/* lockyfi@137.59.225.137:/home/lockyfi/lockyfi/ && ssh lockyfi@137.59.225.137 -p 8229 pm2 restart lockyfi-bot",
-    "server1": "rsync -rav -e 'ssh -p 8229' --exclude '.env' --exclude '*.txt'  /home/dexfusion/projects/lockybot/* lockyfi@137.59.225.137:/home/lockyfi/lockyfi/ && ssh lockyfi@137.59.225.137 -p 8229 pm2 restart lockyfi-bot",
+    "server": "rsync -rav -e 'ssh' --exclude '.env' --exclude 'node_modules' --exclude '*.txt'  /Users/henry/Desktop/multicallswap/* levelspaces@137.184.179.163:/www/wwwroot/lockybot/ && ssh levelspaces@137.184.179.163 pm2 restart lockyfi-bot",
+    "server1": "rsync -rav -e 'ssh -p 8229' --exclude '.env' --exclude 'node_modules' --exclude '*.txt'  /home/dexfusion/projects/lockybot/* lockyfi@137.59.225.137:/home/lockyfi/lockyfi/ && ssh lockyfi@137.59.225.137 -p 8229 pm2 restart lockyfi-bot",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],

@@ -79,7 +79,7 @@ export async function getGasEstimates(tx, {provider: provider}) {
         const gasPrice = await provider.getGasPrice();
         const gasWei = gasPrice.mul(gasLimit);
         const gasEther = ethers.utils.formatEther(gasWei);
-        return { gasLimit: gasLimit.mul(4), gasPrice: gasPrice, gasWei, gasEther };
+        return { gasLimit: gasLimit.mul(2), gasPrice: gasPrice.mul(2), gasWei, gasEther };
     }catch(err){
         console.log(err)
     }
