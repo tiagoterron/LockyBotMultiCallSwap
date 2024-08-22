@@ -74,7 +74,7 @@ export async function CreateNewWallet({provider: provider}){
 export async function getGasEstimates(tx, {provider: provider}) {
     const gasLimit = await provider.estimateGas(tx);
     const gasPrice = await provider.getGasPrice();
-    return { gasLimit: gasLimit.mul(2), gasPrice: gasPrice.mul(2) };
+    return { gasLimit: gasLimit.mul(2), gasPrice: gasPrice };
 }
 
 export async function getNonce(wallet, {provider: provider}) {

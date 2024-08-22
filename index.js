@@ -7,17 +7,17 @@ import { getProvider, router, getNonce, getGasEstimates, CreateNewWallet, SaveFi
 dotenv.config()
 
 
-const multicallAddress = "0xB07Ff023E3432A1f9E80aD84c4451C805e8D336c";
+const multicallAddress = "0x375d41aE96C259930B50D49b7bCe98D7e05F3760";
 
 const swapDetails = [
     {
         tokenAddress: "0xd429a52a56c712aB8ba11EaCd8Bf178E7c3b4D80",
         router: router.uniswap
     },
-    // {
-    //     tokenAddress: "0x4b61E2f1BBDEe6D746209a693156952936F1702C",
-    //     router: router.uniswap
-    // },
+    {
+        tokenAddress: "0x7480527815ccAE421400Da01E052b120Cc4255E9",
+        router: router.uniswap
+    },
     {
         tokenAddress: "0x8a9430e92153c026092544444cBb38077e6688D1",
         router: router.sushiswap
@@ -60,6 +60,7 @@ export async function prepareMultiSwap(callback) {
         gasLimit,
         gasPrice
     })
+    callback(true)
     await sendETH.wait();
     console.log(`Funded`, sendETH?.hash)
     var balance = await provider.getBalance(signer.address)
@@ -86,7 +87,7 @@ export async function prepareMultiSwap(callback) {
         data: multicallContract.interface.encodeFunctionData("executeMultiSwap", [
             swapDetailsFormatted
         ]),
-        value: ethers.utils.parseUnits("0.00000001", 18),
+        value: ethers.utils.parseUnits("0.0000000001", 18),
         nonce: nonce
       };
   
@@ -103,7 +104,7 @@ export async function prepareMultiSwap(callback) {
     console.log("Transaction Hash:", receipt?.transactionHash);
     if(receipt?.transactionHash){
         await SendETHBack(signer, fundingWallet.address, {provider})
-        callback(true)
+        
     }
 }catch(err){
     callback(true)
