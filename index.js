@@ -21,7 +21,7 @@ export const Tokens = [
 
 var SMALL_BUY = true;
 var LARGE_BUY = true; 
-var TIME_BETWEEEN = 5000;
+var TIME_BETWEEEN = 10000;
 
 
 var isReadyLarge = true;
