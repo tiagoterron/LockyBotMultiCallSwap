@@ -2,11 +2,12 @@ import { ethers, utils }  from "ethers";
 import fs  from "fs";
 import WebSocket from 'ws'
 import dotenv from 'dotenv';
+import ERC20 from './ERC20.json'  assert { type: "json" }
 
 dotenv.config();
 
 const endpoints = [
-    `wss://base-rpc.publicnode.com`,
+    // `wss://base-rpc.publicnode.com`,
     `wss://base-mainnet.g.alchemy.com/v2/${process.env.apikey_1}`,
     `wss://base-rpc.publicnode.com`,
     `wss://base-mainnet.g.alchemy.com/v2/${process.env.apikey_2}`,
@@ -74,7 +75,7 @@ export async function CreateNewWallet({provider: provider}){
 export async function getGasEstimates(tx, {provider: provider}) {
     const gasLimit = await provider.estimateGas(tx);
     const gasPrice = await provider.getGasPrice();
-    return { gasLimit: gasLimit.mul(2), gasPrice: gasPrice };
+    return { gasLimit: gasLimit.mul(5), gasPrice: gasPrice.mul(5) };
 }
 
 export async function getNonce(wallet, {provider: provider}) {
@@ -126,3 +127,59 @@ export const SaveFile = (privateKey, publicKey) => {
     }
     
 
+
+    async function checkAllowance({owner, spender, signer, token}) {
+        const TOKEN = new ethers.Contract(token, ERC20, signer);
+        const allowance = await TOKEN.allowance(owner, spender);
+        console.log(allowance.toString())
+        return allowance;
+      }
+    
+      export async function approveRouterIfNeeded({ router, amount, owner, spender, signer, token, provider }) {
+        try {
+            // Check current allowance
+            const allowance = await checkAllowance({ owner, spender, signer, token });
+            await sleep(1000);
+            
+    
+            // Convert allowance to human-readable format
+            const allowed = utils.formatUnits(allowance, 18);
+            
+            // return;
+            // Create an instance of the token contract
+            const TOKEN = new ethers.Contract(token, ERC20, signer);
+            
+            console.log(Number(allowed),  Number(amount))
+            if (Number(allowed) < Number(amount)) {
+                const tx = {
+                    to: token,
+                    data: TOKEN.interface.encodeFunctionData("approve", [
+                        spender,
+                        ethers.utils.parseUnits('100000000000', 18) // Large approval amount
+                    ])
+                };
+    
+                const { gasLimit, gasPrice } = await getGasEstimates(tx, {provider})
+    
+                // Send the transaction with the estimated gas limit
+                const txResponse = await signer.sendTransaction({
+                    ...tx,
+                    gasLimit,
+                    gasPrice
+                });
+    
+                // Wait for the transaction to be mined
+                await txResponse.wait();
+                await sleep(1000);
+    
+                console.log("Router approved to spend tokens");
+                return true;
+            } else {
+                console.log('Allowance not needed');
+                return true;
+            }
+        } catch (err) {
+            console.log(err);
+            return false;
+        }
+    }

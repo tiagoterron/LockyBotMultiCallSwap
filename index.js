@@ -3,29 +3,29 @@ import { ethers, utils }  from "ethers";
 import fs  from "fs";
 import dotenv from 'dotenv';
 import multicallAbi from './abi.json' assert { type: "json" }
-import { getProvider, router, getNonce, getGasEstimates, CreateNewWallet, SaveFile, sleep } from "./lib.js";
+import { getProvider, router, getNonce, getGasEstimates, CreateNewWallet, SaveFile, sleep, approveRouterIfNeeded } from "./lib.js";
 dotenv.config()
 
 
-const multicallAddress = "0x375d41aE96C259930B50D49b7bCe98D7e05F3760";
+const multicallAddress = "0x75979348AaC4b33B0D624f043C40caDA655664aA";
 
 const swapDetails = [
     {
         tokenAddress: "0xd429a52a56c712aB8ba11EaCd8Bf178E7c3b4D80",
         router: router.uniswap
     },
-    {
-        tokenAddress: "0x7480527815ccAE421400Da01E052b120Cc4255E9",
-        router: router.uniswap
-    },
-    {
-        tokenAddress: "0x8a9430e92153c026092544444cBb38077e6688D1",
-        router: router.sushiswap
-  },
-  {
-        tokenAddress: "0x5A8F95B20F986E31Dda904bc2059b21D5Ad8A66c",
-        router: router.sushiswap
-  },
+    // {
+    //     tokenAddress: "0x7480527815ccAE421400Da01E052b120Cc4255E9",
+    //     router: router.uniswap
+    // },
+//     {
+//         tokenAddress: "0x8a9430e92153c026092544444cBb38077e6688D1",
+//         router: router.sushiswap
+//   },
+//   {
+//         tokenAddress: "0x5A8F95B20F986E31Dda904bc2059b21D5Ad8A66c",
+//         router: router.sushiswap
+//   },
 //   {
 //         tokenAddress: "0x532f27101965dd16442E59d40670FaF5eBB142E4",
 //         router: router.uniswap
@@ -41,39 +41,29 @@ const swapDetails = [
 export async function prepareMultiSwap(callback) {
     try{
     var provider = getProvider();
-    const fundingWallet = new ethers.Wallet(process.env.privateKey, provider);
-    var fundingWalletBalance = await provider.getBalance(fundingWallet.address);
-    console.log(`Initiating Main Wallet`, fundingWallet.address);
+    const signer = new ethers.Wallet(process.env.privateKey, provider);
+    var fundingWalletBalance = await provider.getBalance(signer.address);
+    console.log(`Initiating Main Wallet`, signer.address);
     console.log(`Current balance`, utils.formatUnits(fundingWalletBalance, 18));
-    var { signer, address, privateKey } = await CreateNewWallet({provider: provider})
-    console.log(`New Wallet Created`, address)
-    SaveFile(privateKey, address)
-    
-    
-    var tx = {
-            to: address,
-            value: utils.parseUnits("0.00002", 18)
-    };
-    var { gasLimit, gasPrice } = await getGasEstimates(tx, {provider: provider});
-    var sendETH = await fundingWallet.sendTransaction({
-        ...tx,
-        gasLimit,
-        gasPrice
-    })
-    callback(true)
-    await sendETH.wait();
-    console.log(`Funded`, sendETH?.hash)
-    var balance = await provider.getBalance(signer.address)
-    
-    while (balance.eq(0)) {
-        console.log('Waiting for balance to update...');
-        await sleep(5000);
-        balance = await provider.getBalance(signer.address);
-    }
-    
- 
+   
   const multicallContract = new ethers.Contract(multicallAddress, multicallAbi, signer);
+  
+  const approvals = swapDetails.map(async (item) => {
+    return await approveRouterIfNeeded({
+        router: item?.router,
+        amount: ethers.utils.parseUnits("100000", 18),
+        owner: signer?.address,
+        spender: multicallAddress,
+        signer: signer,
+        provider: provider,
+        token: item?.tokenAddress
+    });
+});
 
+// Wait for all approvals to complete
+const approvalResults = await Promise.all(approvals);
+// Check if all approvals were successful
+if (approvalResults.every(res => res === true)) {
   const swapDetailsFormatted = swapDetails.map(detail => ({
     tokenAddress: detail.tokenAddress,
     ethAmount: ethers.utils.parseUnits("0", 18),
@@ -81,16 +71,16 @@ export async function prepareMultiSwap(callback) {
     router: detail.router
   }));
   
-  const nonce = await getNonce(signer, {provider: provider});
+    const nonce = await getNonce(signer, {provider: provider});
     var tx = {
         to: multicallAddress,
-        data: multicallContract.interface.encodeFunctionData("executeMultiSwap", [
+        data: multicallContract.interface.encodeFunctionData("executeSwap", [
             swapDetailsFormatted
         ]),
-        value: ethers.utils.parseUnits("0.0000000001", 18),
+        value: fundingWalletBalance.mul(20).div(100),
+        // value: ethers.utils.parseUnits("0.0001", 18),
         nonce: nonce
       };
-  
     var { gasLimit, gasPrice } = await getGasEstimates(tx, {provider: provider});
 
 
@@ -99,82 +89,33 @@ export async function prepareMultiSwap(callback) {
       gasLimit,
       gasPrice 
     });
+    
     console.log(`Swapping`)
     const receipt = await txResponse.wait();
+    callback(true)
     console.log("Transaction Hash:", receipt?.transactionHash);
-    if(receipt?.transactionHash){
-        await SendETHBack(signer, fundingWallet.address, {provider})
-        
-    }
+}
 }catch(err){
     callback(true)
     console.log(err)
 }
 }
 
-const SendETHBack = async (signer, address, {provider}) => {
-    let balance = await provider.getBalance(signer.address);
-    
-    while (balance.eq(0)) {
-        console.log('Waiting for balance to update...');
-        await sleep(5000);
-        balance = await provider.getBalance(signer.address);
-    }
 
-    try{
-
-    
-    const tx = {
-        to: address,
-        value: balance
-    };
-    const { gasLimit, gasPrice } = await getGasEstimates(tx, {provider: provider});
-    const totalCost = gasLimit.mul(gasPrice).mul(6);
-    const amountToSend = balance.sub(totalCost);
-    if (amountToSend.gt(0)) {
-    const sendETHBack = await signer.sendTransaction({
-        to: address,
-        value: amountToSend,
-        gasLimit,
-        gasPrice
-    });
-    await sendETHBack.wait();
-}
-
-    }catch(err){
-
-        const tx = {
-            to: address,
-            value: balance
-        };
-        const { gasLimit, gasPrice } = await getGasEstimates(tx, {provider: provider});
-        const totalCost = gasLimit.mul(gasPrice).mul(10);
-        const amountToSend = balance.sub(totalCost);
-        if (amountToSend.gt(0)) {
-        const sendETHBack = await signer.sendTransaction({
-            to: address,
-            value: amountToSend,
-            gasLimit,
-            gasPrice
-        });
-        await sendETHBack.wait();
-    }
-
-    }
-    console.log('Transaction confirmed');
-}
+// var isReady = false;
+// await prepareMultiSwap((status) => {
+//     isReady = status;
+// });
 
 
-
-
-let isReady = true;
-const interval = setInterval(async () => {
-    if (isReady) {
-        isReady = false;
-        await prepareMultiSwap((status) => {
-            isReady = status;
-        });
-    } else {
-        console.log(`Latest transaction was not confirmed yet`)
-    }
-}, 4000);
+// let isReady = true;
+// const interval = setInterval(async () => {
+//     if (isReady) {
+//         isReady = false;
+//         await prepareMultiSwap((status) => {
+//             isReady = status;
+//         });
+//     } else {
+//         console.log(`Latest transaction was not confirmed yet`)
+//     }
+// }, 10000);

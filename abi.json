@@ -116,6 +116,41 @@
         "type": "function"
     },
     {
+        "inputs": [
+            {
+                "components": [
+                    {
+                        "internalType": "address",
+                        "name": "tokenAddress",
+                        "type": "address"
+                    },
+                    {
+                        "internalType": "uint256",
+                        "name": "ethAmount",
+                        "type": "uint256"
+                    },
+                    {
+                        "internalType": "address",
+                        "name": "recipient",
+                        "type": "address"
+                    },
+                    {
+                        "internalType": "address",
+                        "name": "router",
+                        "type": "address"
+                    }
+                ],
+                "internalType": "struct MulticallSwap.SwapDetails[]",
+                "name": "swapDetails",
+                "type": "tuple[]"
+            }
+        ],
+        "name": "executeSwap",
+        "outputs": [],
+        "stateMutability": "payable",
+        "type": "function"
+    },
+    {
         "inputs": [],
         "name": "owner",
         "outputs": [
