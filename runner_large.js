@@ -51,7 +51,7 @@ if (approvalResults.every(res => res === true)) {
         data: multicallContract.interface.encodeFunctionData("executeSwap", [
             swapDetailsFormatted
         ]),
-        value: fundingWalletBalance.mul(95).div(100),
+        value: fundingWalletBalance.mul(40).div(100),
         nonce: nonce
       };
     var { gasLimit, gasPrice, gasWei, gasEther } = await getGasEstimates(tx, {provider: provider});
