@@ -14,7 +14,7 @@ dotenv.config()
 export async function MultiSwapLarge(callback) {
   try{
     var provider = getProvider();
-    const signer = new ethers.Wallet(process.env.privateKey1, provider);
+    const signer = new ethers.Wallet(process.env.privateKey2, provider);
     console.log(`Connecting with wallet ${signer?.address}`)
     var fundingWalletBalance = await provider.getBalance(signer.address);
     console.log(`Current balance`, utils.formatUnits(fundingWalletBalance, 18));
