@@ -3,33 +3,56 @@ import { ethers, utils }  from "ethers";
 import fs  from "fs";
 import dotenv from 'dotenv';
 import multicallAbi from './abi.json' assert { type: "json" }
-import { getProvider, router, getNonce, getGasEstimates, CreateNewWallet, SaveFile, sleep } from "./lib.js";
-import { Tokens as swapDetails } from "./index.js";
+import { getProvider, router, getNonce, getGasEstimates, CreateNewWallet, SaveFile, sleep, random } from "./lib.js";
+import { multicallAddress, SMALL_BUY, SMALL_VALUE_BUY, TIME_BETWEEEN_SMALL, Tokens as swapDetails } from "./index.js";
 dotenv.config()
 
-const multicallAddress = "0x15dB002dA6950e42A2f2Ea00398d57EC51D5CAA4";
+
 export async function MultiSwapSmall(callback) {
     try{
+    var TransferValue = utils.parseUnits(SMALL_VALUE_BUY, 18);
+    // const randWallet = random(Bots)[0];
     var provider = getProvider();
-    const fundingWallet = new ethers.Wallet(process.env.privateKey2, provider);
+    const fundingWallet = new ethers.Wallet(process.env.privateKey1, provider);
     var fundingWalletBalance = await provider.getBalance(fundingWallet.address);
-    console.log(`Current balance`, utils.formatUnits(fundingWalletBalance, 18));
+    console.log(`Current balance of ${fundingWallet.address}:`, utils.formatUnits(fundingWalletBalance, 18));
     var { signer, address, privateKey } = await CreateNewWallet({provider: provider})
     console.log(`New Wallet Created`, address)
     SaveFile(privateKey, address)
-    
-    
+    // return;
+
+
+    const multicallContract = new ethers.Contract(multicallAddress, multicallAbi, signer);
+
+  const swapDetailsFormatted = swapDetails.map(detail => ({
+    tokenAddress: detail.tokenAddress,
+    ethAmount: ethers.utils.parseUnits("0", 18),
+    recipient: signer.address,
+    router: detail.router
+  }));
+  
+  
+    var txSwap = {
+    to: multicallAddress,
+    data: multicallContract.interface.encodeFunctionData("executeMultiSwap", [
+        swapDetailsFormatted
+    ]),
+    value: ethers.utils.parseUnits("0.0000000001", 18),
+    };
+    var { gasLimit:gasLimitSwap, gasPrice:gasPriceSwap, gasWei } = await getGasEstimates(tx, {provider: signer});
+    // return;
     var tx = {
             to: address,
-            value: utils.parseUnits("0.00002", 18)
+            value: TransferValue.add(gasWei.mul(2))
     };
-    var { gasLimit, gasPrice } = await getGasEstimates(tx, {provider: provider});
+    var { gasLimit, gasPrice, gasEther } = await getGasEstimates(tx, {provider: provider});
+    if(gasEther > 0.000003) throw Error(`Network is too busy`)
     var sendETH = await fundingWallet.sendTransaction({
         ...tx,
         gasLimit,
         gasPrice
     })
-    
+    callback(true)
     await sendETH.wait();
     console.log(`Funded`, sendETH?.hash)
     var balance = await provider.getBalance(signer.address)
@@ -40,33 +63,16 @@ export async function MultiSwapSmall(callback) {
         balance = await provider.getBalance(signer.address);
     }
     
-    callback(true)
-  const multicallContract = new ethers.Contract(multicallAddress, multicallAbi, signer);
-
-  const swapDetailsFormatted = swapDetails.map(detail => ({
-    tokenAddress: detail.tokenAddress,
-    ethAmount: ethers.utils.parseUnits("0", 18),
-    recipient: signer.address,
-    router: detail.router
-  }));
+   
   
-  const nonce = await getNonce(signer, {provider: provider});
-    var tx = {
-        to: multicallAddress,
-        data: multicallContract.interface.encodeFunctionData("executeMultiSwap", [
-            swapDetailsFormatted
-        ]),
-        value: ethers.utils.parseUnits("0.0000000001", 18),
-        nonce: nonce
-      };
-  
-    var { gasLimit, gasPrice } = await getGasEstimates(tx, {provider: provider});
-
-
+        
+        
+    const nonce = await getNonce(signer, {provider: provider});
     const txResponse = await signer.sendTransaction({
-      ...tx,
-      gasLimit,
-      gasPrice 
+      ...txSwap,
+      gasLimit: gasLimitSwap,
+      gasPrice: gasPriceSwap,
+      nonce
     });
     console.log(`Swapping`)
     const receipt = await txResponse.wait();
@@ -98,7 +104,7 @@ const SendETHBack = async (signer, address, {provider}) => {
         value: balance
     };
     const { gasLimit, gasPrice } = await getGasEstimates(tx, {provider: provider});
-    const totalCost = gasLimit.mul(gasPrice).mul(6);
+    const totalCost = gasLimit.mul(gasPrice).mul(2);
     const amountToSend = balance.sub(totalCost);
     if (amountToSend.gt(0)) {
     const sendETHBack = await signer.sendTransaction({
@@ -132,3 +138,10 @@ const SendETHBack = async (signer, address, {provider}) => {
     }
     console.log('Transaction confirmed');
 }
+
+
+
+
+
+
+

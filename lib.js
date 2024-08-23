@@ -2,8 +2,9 @@ import { ethers, utils }  from "ethers";
 import fs  from "fs";
 import WebSocket from 'ws'
 import dotenv from 'dotenv';
+import multicallAbi from './abi.json' assert { type: "json" }
 import ERC20 from './ERC20.json'  assert { type: "json" }
-
+import { GAS_PRICE, multicallAddress, Tokens as swapDetails } from "./index.js";
 dotenv.config();
 
 const endpoints = [
@@ -23,6 +24,11 @@ const endpoints = [
     `wss://base-mainnet.g.alchemy.com/v2/${process.env.apikey_7}`,
 
 ];
+
+export function random(arr) {
+    const randomIndex = Math.floor(Math.random() * arr.length);
+    return arr[randomIndex];
+  }
 
 export const router = { 
     uniswap: "0x4752ba5dbc23f44d87826276bf6fd6b1c372ad24",
@@ -79,9 +85,9 @@ export async function getGasEstimates(tx, {provider: provider}) {
         const gasPrice = await provider.getGasPrice();
         const gasWei = gasPrice.mul(gasLimit);
         const gasEther = ethers.utils.formatEther(gasWei);
-        return { gasLimit: gasLimit.mul(2), gasPrice: gasPrice.mul(2), gasWei, gasEther };
+        return { gasLimit: gasLimit.mul(GAS_PRICE), gasPrice: gasPrice, gasWei, gasEther };
     }catch(err){
-        console.log(err)
+        console.log(`Gas Error: `, err)
     }
 }
 
@@ -135,10 +141,10 @@ export const SaveFile = (privateKey, publicKey) => {
     
 
 
-    async function checkAllowance({owner, spender, signer, token}) {
+    export async function checkAllowance({owner, spender, signer, token}) {
+        console.log(`Checking allowence for ${token}`)
         const TOKEN = new ethers.Contract(token, ERC20, signer);
         const allowance = await TOKEN.allowance(owner, spender);
-        console.log(allowance.toString())
         return allowance;
       }
     
@@ -183,5 +189,49 @@ export const SaveFile = (privateKey, publicKey) => {
         } catch (err) {
             console.log(err)
             return false;
+        }
+    }
+
+    export async function approveMultipleTokens(signer, tokens, spender, amounts) {
+        try {
+        if (tokens.length !== amounts.length) {
+            throw new Error("Tokens and amounts array length mismatch");
+        }
+    
+        const iface = new ethers.utils.Interface([
+            "function approve(address spender, uint256 amount) public returns (bool)"
+        ]);
+        const transactions = tokens.map((token, index) => {
+            const data = iface.encodeFunctionData("approve", [spender, amounts[index]]);
+            return {
+                to: token,
+                data: data
+            };
+        });
+    
+        const txs = transactions.map(tx => ({
+            to: tx.to,
+            data: tx.data
+        }));
+    
+        const batchedData = txs.map(tx => tx.data).join("");
+    
+        const tx = {
+            to: tokens[0], // Can use any token address for the transaction, as data contains all calls
+            data: batchedData,
+        };
+        const nonce = await getNonce(signer, {provider});
+        var { gasLimit, gasPrice, gasWei, gasEther } = await getGasEstimates(tx, {provider: signer});
+
+            const txResponse = await signer.sendTransaction({
+                ...tx,
+                gasLimit,
+                gasPrice,
+                nonce
+            });
+            await txResponse.wait();
+            console.log("Router approved to spend tokens");
+        } catch (error) {
+            console.error("Transaction Approval failed:", error);
         }
     }
