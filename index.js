@@ -31,7 +31,7 @@ export const Tokens = [
 export var SMALL_VALUE_BUY = "0.000002";
 export var GAS_PRICE = 4; // 2 = Low / 3 = Medium / 4 = High / 5 / = SUPER HIGH
 export var SMALL_BUY = true; // Activate small buys
-export var LARGE_BUY = false;  // Activate large buys
+export var LARGE_BUY = true;  // Activate large buys
 export var TIME_BETWEEEN_SMALL = 5000; // Change time between small transactions 1s = 1000
 export var TIME_BETWEEEN_LARGE = 5000; // Change time between large transactions 1s = 1000
 
